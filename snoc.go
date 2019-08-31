@@ -1,6 +1,7 @@
 package snoc
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -17,7 +18,6 @@ type Sigfox struct {
 func (s *Sigfox) Init(port string) {
 	portName := port
 
-	fmt.Println("Serial port : " + portName)
 	s.conf = &serial.Config{Name: portName, Baud: 9600, Parity: serial.ParityNone, StopBits: serial.Stop1, Size: 8, ReadTimeout: time.Millisecond * 500}
 }
 
@@ -29,13 +29,15 @@ func (s *Sigfox) OpenPort() {
 	s.ser = serTmp
 }
 
-func (s *Sigfox) WaitFor(success, failure string, timeOut int) bool {
-	return s.ReceiveUntil(success, failure, timeOut) != ""
+func (s *Sigfox) WaitFor(success, failure string, timeOut int) error {
+	err := s.ReceiveUntil(success, failure, timeOut)
+	return err
 }
 
-func (s *Sigfox) ReceiveUntil(success, failure string, timeOut int) string {
+func (s *Sigfox) ReceiveUntil(success, failure string, timeOut int) error {
 	iterCount := float32(timeOut) / 0.1
 	var currentMsg string
+	var err error
 	buf := make([]byte, 128)
 	for iterCount >= 0 && !strings.Contains(currentMsg, success) && !strings.Contains(currentMsg, failure) {
 		time.Sleep(100 * time.Millisecond)
@@ -44,17 +46,19 @@ func (s *Sigfox) ReceiveUntil(success, failure string, timeOut int) string {
 		iterCount -= 1
 	}
 	if strings.Contains(currentMsg, success) {
-		return currentMsg
+		return nil
 	} else if strings.Contains(currentMsg, failure) {
-		fmt.Println("Erreur (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
+		//log.Fatal("Erreur (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
+		err = errors.New("Error (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
 	} else {
-		fmt.Println("Délai de réception dépassé (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
+		err = errors.New("Timeout (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
 	}
-	return ""
+	return err
 }
 
-func (s *Sigfox) SendMessage(message string) {
-	fmt.Println("Sending SigFox Message...")
+func (s *Sigfox) SendMessage(message string) error {
+
+	var err error
 
 	if s.ser != nil {
 		s.ser.Close()
@@ -64,20 +68,16 @@ func (s *Sigfox) SendMessage(message string) {
 
 	s.ser.Write([]byte("AT\r"))
 
-	if s.WaitFor("OK", "ERROR", 3) {
-		fmt.Println("SigFox Modem OK")
+	err = s.WaitFor("OK", "ERROR", 3)
+
+	if err != nil {
 
 		messSend := fmt.Sprintf("AT$SF=%s\r", message)
 
 		s.ser.Write([]byte(messSend))
-		fmt.Println("Envoi des données ...")
-		if s.WaitFor("OK", "ERROR", 15) {
-			fmt.Println("OK Message envoyé")
-		}
-	} else {
-		fmt.Println("Erreur Modem SigFox")
+		err = s.WaitFor("OK", "ERROR", 15)
 	}
 
-	fmt.Println("ClosePort")
 	s.ser.Close()
+	return err
 }
