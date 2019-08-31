@@ -12,6 +12,7 @@ import (
 func main() {
 	var s snoc.Sigfox
 	s.Init("/dev/ttyAMA0")
-	s.SendMessage("42")
+	err := s.SendMessage("4242")
+	fmt.Println(err)
 }
 ```
