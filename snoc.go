@@ -65,7 +65,7 @@ func (s *Sigfox) SendMessage(message string) error {
 
 	err = s.WaitFor("OK", "ERROR", 3)
 
-	if err != nil {
+	if err == nil {
 
 		messSend := fmt.Sprintf("AT$SF=%s\r", message)
 
