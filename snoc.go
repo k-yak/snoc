@@ -30,11 +30,6 @@ func (s *Sigfox) OpenPort() {
 }
 
 func (s *Sigfox) WaitFor(success, failure string, timeOut int) error {
-	err := s.ReceiveUntil(success, failure, timeOut)
-	return err
-}
-
-func (s *Sigfox) ReceiveUntil(success, failure string, timeOut int) error {
 	iterCount := float32(timeOut) / 0.1
 	var currentMsg string
 	var err error
