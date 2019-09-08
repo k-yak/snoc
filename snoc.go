@@ -43,10 +43,9 @@ func (s *Sigfox) WaitFor(success, failure string, timeOut int) error {
 	if strings.Contains(currentMsg, success) {
 		return nil
 	} else if strings.Contains(currentMsg, failure) {
-		//log.Fatal("Erreur (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
-		err = errors.New("Error (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
+		err = errors.New("Error (" + strings.Replace(currentMsg, "\r\n", "", -1) + ")")
 	} else {
-		err = errors.New("Timeout (" + strings.ReplaceAll(currentMsg, "\r\n", "") + ")")
+		err = errors.New("Timeout (" + strings.Replace(currentMsg, "\r\n", "", -1) + ")")
 	}
 	return err
 }
